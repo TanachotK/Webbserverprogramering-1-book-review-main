@@ -1,5 +1,6 @@
 // ========================================
 // IMPORTS
+import axios from "axios";
 // ========================================
 
 // ========================================
@@ -10,6 +11,10 @@ const submitBtn = document.querySelector("button[type='submit']");
 
 // ========================================
 // KONSTANTER
+let inputBook = ""
+let inputName = ""
+let inputRecension = ""
+let inputFörfattare = ""
 // ========================================
 const API_URL = "http://localhost:3000/reviews";
 
@@ -91,6 +96,10 @@ const displayReviews = (reviews) => {
  */
 const handleDelete = async (e) => {
   // TODO: Hämta review ID från knappen
+  const messageId = e.target.dataset.id;  
+  console.log({messageId: messageId});
+
+
   // TODO: Visa bekräftelsedialog
   // TODO: Skicka DELETE-request till backend
   // TODO: Ladda om recensioner om det lyckas
