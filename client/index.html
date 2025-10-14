@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bokrecensioner</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        color: white;
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 2.5em;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      h2 {
+        color: white;
+        margin: 30px 0 20px 0;
+        font-size: 1.8em;
+      }
+
+      form {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 40px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 14px;
+        transition: border-color 0.3s;
+      }
+
+      input:focus,
+      textarea:focus,
+      select:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 120px;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+
+      button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 14px 28px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        transition: transform 0.2s, box-shadow 0.2s;
+        width: 100%;
+      }
+
+      button:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      }
+
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .reviews {
+        display: grid;
+        gap: 20px;
+      }
+
+      .review {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .review:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+      }
+
+      .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
+      }
+
+      .book-info h3 {
+        color: #667eea;
+        margin-bottom: 5px;
+        font-size: 1.4em;
+      }
+
+      .book-author {
+        color: #666;
+        font-style: italic;
+        font-size: 0.95em;
+      }
+
+      .rating {
+        display: flex;
+        gap: 3px;
+        font-size: 1.5em;
+      }
+
+      .star {
+        color: #ffd700;
+      }
+
+      .star.empty {
+        color: #ddd;
+      }
+
+      .review-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        color: #666;
+        font-size: 0.9em;
+      }
+
+      .reviewer {
+        font-weight: 600;
+        color: #764ba2;
+      }
+
+      .review-content {
+        color: #333;
+        line-height: 1.7;
+        margin-bottom: 15px;
+      }
+
+      .delete-btn {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        padding: 10px 20px;
+        font-size: 14px;
+        width: auto;
+      }
+
+      .delete-btn:hover {
+        box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 12px;
+        color: #666;
+      }
+
+      .empty-state h3 {
+        color: #667eea;
+        margin-bottom: 10px;
+      }
+
+      @media (max-width: 768px) {
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>📚 Bokrecensioner</h1>
+
+      <form class="review-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="bookTitle">Boktitel:</label>
+            <input
+              type="text"
+              id="bookTitle"
+              name="bookTitle"
+              placeholder="Titel på boken"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="author">Författare:</label>
+            <input
+              type="text"
+              id="author"
+              name="author"
+              placeholder="Författarens namn"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="reviewer">Ditt namn:</label>
+            <input
+              type="text"
+              id="reviewer"
+              name="reviewer"
+              placeholder="Ditt namn"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="rating">Betyg:</label>
+            <select id="rating" name="rating" required>
+              <option value="">Välj betyg</option>
+              <option value="5">⭐⭐⭐⭐⭐ (5)</option>
+              <option value="4">⭐⭐⭐⭐ (4)</option>
+              <option value="3">⭐⭐⭐ (3)</option>
+              <option value="2">⭐⭐ (2)</option>
+              <option value="1">⭐ (1)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="review">Din recension:</label>
+          <textarea
+            id="review"
+            name="review"
+            placeholder="Skriv din recension här..."
+            required
+          ></textarea>
+        </div>
+
+        <button type="submit" disabled>Publicera recension</button>
+      </form>
+
+      <h2>Alla recensioner</h2>
+      <div class="reviews"></div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
