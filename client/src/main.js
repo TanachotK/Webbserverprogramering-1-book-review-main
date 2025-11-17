@@ -11,10 +11,11 @@ const submitBtn = document.querySelector("button[type='submit']");
 
 // ========================================
 // KONSTANTER
-let inputBook = ""
-let inputName = ""
-let inputRecension = ""
-let inputFörfattare = ""
+let inputBookTitle = "";
+let inputReviewer = "";
+let inputReview = "";
+let inputAuthor = "";
+let inputRating = "";
 // ========================================
 const API_URL = "http://localhost:3000/reviews";
 
@@ -26,8 +27,17 @@ const API_URL = "http://localhost:3000/reviews";
  * Kontrollerar om alla formulärfält är ifyllda
  */
 const checkInputs = () => {
-  // TODO: Hämta värden från alla input-fält
-  // TODO: Aktivera/inaktivera submit-knappen baserat på om alla fält är ifyllda
+  inputReviewer = form.elements.reviewer.value.trim();
+  inputBookTitle = form.elements.bookTitle.value.trim();
+  inputReview = form.elements.review.value.trim();
+  inputAuthor = form.elements.author.value.trim();
+  inputRating = form.elements.rating.value.trim();
+  
+  if (!inputReviewer || !inputReview || !inputBookTitle || !inputAuthor || !inputRating) {
+    submitBtn.disabled = true;
+  } else {
+    submitBtn.disabled = false;
+  }
 };
 
 /**
@@ -88,30 +98,62 @@ const displayReviews = (reviews) => {
     reviewsContainer.appendChild(reviewDiv);
   });
 
-  // TODO: Lägg till event listeners på radera-knappar
+  // Wire up delete button event listeners after rendering
+  const deleteBtns = document.querySelectorAll(".delete-btn");
+  deleteBtns.forEach((btn) => {
+    btn.addEventListener("click", handleDelete);
+  });
 };
 
 /**
  * Hanterar radering av en recension
  */
 const handleDelete = async (e) => {
-  // TODO: Hämta review ID från knappen
-  const messageId = e.target.dataset.id;  
-  console.log({messageId: messageId});
+  const reviewId = e.currentTarget.dataset.id;
 
+  // Visa bekräftelsedialog
+  const ok = confirm('Är du säker på att du vill radera den här recensionen?');
+  if (!ok) return;
 
-  // TODO: Visa bekräftelsedialog
-  // TODO: Skicka DELETE-request till backend
-  // TODO: Ladda om recensioner om det lyckas
+  try {
+    // Skicka DELETE-request till backend
+    const response = await axios.delete(`${API_URL}/${reviewId}`);
+
+    // Anta att backend returnerar 200 vid framgång
+    if (response.status === 200 || response.status === 204) {
+      alert('Recension raderad.');
+      // Ladda om recensioner
+      await loadReviews();
+    } else {
+      alert('Kunde inte radera recensionen.');
+    }
+  } catch (error) {
+    console.error('Fel vid radering:', error);
+    if (error.response && error.response.status === 404) {
+      alert('Recension hittades inte.');
+    } else {
+      alert('Kunde inte radera recensionen.');
+    }
+  }
 };
 
 /**
  * Hämtar och visar alla recensioner från servern
  */
 const loadReviews = async () => {
-  // TODO: Skicka GET-request till backend
-  // TODO: Visa recensionerna med displayReviews()
-  // TODO: Hantera fel
+  try {
+    const response = await axios.get(API_URL);
+
+    // förvänta oss en array i response.data
+    const reviews = response.data || [];
+    displayReviews(reviews);
+  } catch (error) {
+    console.error('Fel vid hämtning av recensioner:', error);
+    const reviewsContainer = document.querySelector('.reviews');
+    if (reviewsContainer) {
+      reviewsContainer.innerHTML = '<p>Kunde inte ladda recensioner just nu.</p>';
+    }
+  }
 };
 
 // ========================================
@@ -129,16 +171,54 @@ form.addEventListener("input", checkInputs);
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  // TODO: Hämta alla värden från formuläret
-  // TODO: Skapa ett reviewData-objekt
-  // TODO: Skicka POST-request till backend
-  // TODO: Om det lyckas: visa meddelande, rensa formuläret, ladda om recensioner
-  // TODO: Hantera fel
+  // Collect form values from the DOM
+  inputReviewer = form.elements.reviewer.value.trim();
+  inputBookTitle = form.elements.bookTitle.value.trim();
+  inputReview = form.elements.review.value.trim();
+  inputAuthor = form.elements.author.value.trim();
+  inputRating = form.elements.rating.value.trim();
+
+  if (!inputReviewer || !inputBookTitle || !inputReview || !inputAuthor || !inputRating) {
+    return alert('Fyll i alla fält!');
+  }
+
+  // Create reviewData object
+  const reviewData = {
+    reviewer: inputReviewer,
+    bookTitle: inputBookTitle,
+    author: inputAuthor,
+    review: inputReview,
+    rating: parseInt(inputRating),
+  };
+
+  // Disable submit until request completes
+  submitBtn.disabled = true;
+
+  try {
+    // Send POST request to backend
+    const response = await axios.post(API_URL, reviewData);
+
+    if (response.status === 201 || response.status === 200) {
+      alert('Review sparades!');
+      form.reset();
+      // Reload reviews to show the new one
+      await loadReviews();
+    } else {
+      console.error('Unexpected response:', response);
+      alert('Ett fel uppstod vid sparande.');
+    }
+  } catch (error) {
+    console.error('Fel vid skapande av recension:', error);
+    alert('Kunde inte skapa recensionen.');
+  } finally {
+    // Restore button state via checkInputs
+    checkInputs();
+  }
 });
 
 /**
  * Laddar recensioner när sidan laddas
  */
 window.addEventListener("load", async () => {
-  // TODO: Anropa loadReviews()
+  await loadReviews();
 });
