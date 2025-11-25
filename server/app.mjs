@@ -52,4 +52,31 @@ app.delete("/reviews/:id", (req, res) => {
   res.json({ success: true, deleted: deletedReview });
 });
 
+// UPDATE a review by ID (PUT)
+app.put('/reviews/:id', (req, res) => {
+  const { id } = req.params;
+  const index = reviews.findIndex((r) => r.id === parseInt(id));
+  if (index === -1) {
+    return res.status(404).json({ error: 'Recension hittades inte' });
+  }
+
+  const { reviewer, bookTitle, author, review: reviewText, rating } = req.body;
+  if (!reviewer || !bookTitle || !author || !reviewText || !rating) {
+    return res.status(400).json({ error: 'Alla fält krävs' });
+  }
+
+  // Update fields
+  reviews[index] = {
+    ...reviews[index],
+    reviewer,
+    bookTitle,
+    author,
+    review: reviewText,
+    rating: parseInt(rating),
+    timestamp: new Date().toISOString(),
+  };
+
+  res.json(reviews[index]);
+});
+
 export default app;

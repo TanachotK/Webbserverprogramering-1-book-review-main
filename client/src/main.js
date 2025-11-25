@@ -8,6 +8,7 @@ import axios from "axios";
 // ========================================
 const form = document.querySelector(".review-form");
 const submitBtn = document.querySelector("button[type='submit']");
+const cancelBtn = document.querySelector('.cancel-btn');
 
 // ========================================
 // KONSTANTER
@@ -16,6 +17,7 @@ let inputReviewer = "";
 let inputReview = "";
 let inputAuthor = "";
 let inputRating = "";
+let editingId = null; // null if creating new, otherwise stores review id being edited
 // ========================================
 const API_URL = "http://localhost:3000/reviews";
 
@@ -93,6 +95,7 @@ const displayReviews = (reviews) => {
       </div>
       <p class="review-content">${review.review}</p>
       <button class="delete-btn" data-id="${review.id}">🗑️ Radera</button>
+      <button class="edit-btn" data-id="${review.id}">✏️ Redigera</button>
     `;
 
     reviewsContainer.appendChild(reviewDiv);
@@ -102,6 +105,12 @@ const displayReviews = (reviews) => {
   const deleteBtns = document.querySelectorAll(".delete-btn");
   deleteBtns.forEach((btn) => {
     btn.addEventListener("click", handleDelete);
+  });
+
+  // Wire up edit button event listeners after rendering
+  const editBtns = document.querySelectorAll('.edit-btn');
+  editBtns.forEach((btn) => {
+    btn.addEventListener('click', handleEdit);
   });
 };
 
@@ -135,6 +144,53 @@ const handleDelete = async (e) => {
       alert('Kunde inte radera recensionen.');
     }
   }
+};
+
+/**
+ * Hanterar när användaren klickar redigera
+ */
+const handleEdit = async (e) => {
+  const reviewId = e.currentTarget.dataset.id;
+
+  // find the review from the current displayed reviews by fetching from backend
+  try {
+    const response = await axios.get(`${API_URL}`);
+    const reviewsList = response.data || [];
+    const review = reviewsList.find((r) => r.id === parseInt(reviewId));
+    if (!review) return alert('Recension hittades inte');
+
+    enterEditMode(review);
+  } catch (error) {
+    console.error('Fel vid läsning för edit:', error);
+    alert('Kunde inte läsa recensionen för redigering');
+  }
+};
+
+/**
+ * Enter edit mode: prefill the form and set editingId
+ */
+const enterEditMode = (review) => {
+  editingId = review.id;
+  form.elements.reviewer.value = review.reviewer;
+  form.elements.bookTitle.value = review.bookTitle;
+  form.elements.author.value = review.author;
+  form.elements.review.value = review.review;
+  form.elements.rating.value = review.rating.toString();
+  submitBtn.textContent = 'Uppdatera recension';
+  cancelBtn.style.display = 'inline-block';
+  checkInputs();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+/**
+ * Exit edit mode: reset the form
+ */
+const exitEditMode = () => {
+  editingId = null;
+  form.reset();
+  submitBtn.textContent = 'Publicera recension';
+  cancelBtn.style.display = 'none';
+  checkInputs();
 };
 
 /**
@@ -195,13 +251,19 @@ form.addEventListener("submit", async (e) => {
   submitBtn.disabled = true;
 
   try {
-    // Send POST request to backend
-    const response = await axios.post(API_URL, reviewData);
+    // If editingId is set, send PUT request to update review
+    let response;
+    if (editingId) {
+      response = await axios.put(`${API_URL}/${editingId}`, reviewData);
+    } else {
+      response = await axios.post(API_URL, reviewData);
+    }
 
     if (response.status === 201 || response.status === 200) {
-      alert('Review sparades!');
-      form.reset();
-      // Reload reviews to show the new one
+      const successMsg = editingId ? 'Recension uppdaterad!' : 'Review sparades!';
+      alert(successMsg);
+      exitEditMode();
+      // Reload reviews to show the updated one
       await loadReviews();
     } else {
       console.error('Unexpected response:', response);
@@ -214,6 +276,11 @@ form.addEventListener("submit", async (e) => {
     // Restore button state via checkInputs
     checkInputs();
   }
+});
+
+// Cancel edit button
+cancelBtn.addEventListener('click', () => {
+  exitEditMode();
 });
 
 /**

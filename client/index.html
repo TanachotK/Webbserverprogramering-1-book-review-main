@@ -190,6 +190,24 @@
         width: auto;
       }
 
+      .edit-btn {
+        background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+        padding: 10px 20px;
+        font-size: 14px;
+        margin-left: 8px;
+        width: auto;
+      }
+
+      .edit-btn:hover {
+        box-shadow: 0 4px 12px rgba(143, 211, 244, 0.4);
+      }
+
+      .cancel-btn {
+        background: #eee;
+        padding: 8px 14px;
+        border-radius: 6px;
+      }
+
       .delete-btn:hover {
         box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
       }
@@ -276,7 +294,10 @@
           ></textarea>
         </div>
 
-        <button type="submit" disabled>Publicera recension</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button type="submit" disabled class="submit-btn">Publicera recension</button>
+          <button type="button" class="cancel-btn" style="display:none;">Avbryt</button>
+        </div>
       </form>
 
       <h2>Alla recensioner</h2>
