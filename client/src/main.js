@@ -164,8 +164,6 @@ form.addEventListener("submit", async (e) => {
     reviewer,
     rating,
     review,
-    id,
-    timestamp: new Date(),
   };
 
   try {
