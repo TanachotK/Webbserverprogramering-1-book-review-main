@@ -1,41 +1,31 @@
-// ========================================
-// IMPORTS
 import axios from "axios";
-// ========================================
 
 // ========================================
 // DOM-ELEMENT
 // ========================================
 const form = document.querySelector(".review-form");
 const submitBtn = document.querySelector("button[type='submit']");
-const cancelBtn = document.querySelector('.cancel-btn');
 
-// ========================================
-// KONSTANTER
-let inputBookTitle = "";
-let inputReviewer = "";
-let inputReview = "";
-let inputAuthor = "";
-let inputRating = "";
-let editingId = null; // null if creating new, otherwise stores review id being edited
-// ========================================
-const API_URL = "http://localhost:3000/reviews";
-
-// ========================================
-// HJÄLPFUNKTIONER
-// ========================================
+const API_URL = "http://localhost:3000";
 
 /**
  * Kontrollerar om alla formulärfält är ifyllda
  */
 const checkInputs = () => {
-  inputReviewer = form.elements.reviewer.value.trim();
-  inputBookTitle = form.elements.bookTitle.value.trim();
-  inputReview = form.elements.review.value.trim();
-  inputAuthor = form.elements.author.value.trim();
-  inputRating = form.elements.rating.value.trim();
-  
-  if (!inputReviewer || !inputReview || !inputBookTitle || !inputAuthor || !inputRating) {
+  const bookTitle = form.elements.bookTitle.value;
+  const author = form.elements.author.value;
+  const reviewer = form.elements.reviewer.value;
+  const rating = form.elements.rating.value;
+  const review = form.elements.review.value;
+
+  if (
+    !bookTitle ||
+    !author ||
+    !reviewer ||
+    rating < 0 ||
+    rating > 5 ||
+    !review
+  ) {
     submitBtn.disabled = true;
   } else {
     submitBtn.disabled = false;
@@ -95,102 +85,37 @@ const displayReviews = (reviews) => {
       </div>
       <p class="review-content">${review.review}</p>
       <button class="delete-btn" data-id="${review.id}">🗑️ Radera</button>
-      <button class="edit-btn" data-id="${review.id}">✏️ Redigera</button>
     `;
 
     reviewsContainer.appendChild(reviewDiv);
+    const deleteBtn = reviewDiv.querySelector(".delete-btn");
+    if (deleteBtn) deleteBtn.addEventListener("click", handleDelete);
   });
 
-  // Wire up delete button event listeners after rendering
-  const deleteBtns = document.querySelectorAll(".delete-btn");
-  deleteBtns.forEach((btn) => {
-    btn.addEventListener("click", handleDelete);
-  });
-
-  // Wire up edit button event listeners after rendering
-  const editBtns = document.querySelectorAll('.edit-btn');
-  editBtns.forEach((btn) => {
-    btn.addEventListener('click', handleEdit);
-  });
+  // TODO: Lägg till event listeners på radera-knappar
 };
 
 /**
  * Hanterar radering av en recension
  */
 const handleDelete = async (e) => {
-  const reviewId = e.currentTarget.dataset.id;
+  const id = e.currentTarget?.dataset?.id || e.target?.dataset?.id;
+  if (!id) return;
 
-  // Visa bekräftelsedialog
-  const ok = confirm('Är du säker på att du vill radera den här recensionen?');
+  const ok = confirm("Vill du verkligen radera den här recensionen?");
   if (!ok) return;
 
   try {
-    // Skicka DELETE-request till backend
-    const response = await axios.delete(`${API_URL}/${reviewId}`);
-
-    // Anta att backend returnerar 200 vid framgång
-    if (response.status === 200 || response.status === 204) {
-      alert('Recension raderad.');
-      // Ladda om recensioner
+    const response = await axios.delete(`${API_URL}/reviews/${id}`);
+    if (response.status === 200) {
       await loadReviews();
     } else {
-      alert('Kunde inte radera recensionen.');
+      alert("Kunde inte radera recensionen");
     }
   } catch (error) {
-    console.error('Fel vid radering:', error);
-    if (error.response && error.response.status === 404) {
-      alert('Recension hittades inte.');
-    } else {
-      alert('Kunde inte radera recensionen.');
-    }
+    console.error(error);
+    alert("Kunde inte radera recensionen");
   }
-};
-
-/**
- * Hanterar när användaren klickar redigera
- */
-const handleEdit = async (e) => {
-  const reviewId = e.currentTarget.dataset.id;
-
-  // find the review from the current displayed reviews by fetching from backend
-  try {
-    const response = await axios.get(`${API_URL}`);
-    const reviewsList = response.data || [];
-    const review = reviewsList.find((r) => r.id === parseInt(reviewId));
-    if (!review) return alert('Recension hittades inte');
-
-    enterEditMode(review);
-  } catch (error) {
-    console.error('Fel vid läsning för edit:', error);
-    alert('Kunde inte läsa recensionen för redigering');
-  }
-};
-
-/**
- * Enter edit mode: prefill the form and set editingId
- */
-const enterEditMode = (review) => {
-  editingId = review.id;
-  form.elements.reviewer.value = review.reviewer;
-  form.elements.bookTitle.value = review.bookTitle;
-  form.elements.author.value = review.author;
-  form.elements.review.value = review.review;
-  form.elements.rating.value = review.rating.toString();
-  submitBtn.textContent = 'Uppdatera recension';
-  cancelBtn.style.display = 'inline-block';
-  checkInputs();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-};
-
-/**
- * Exit edit mode: reset the form
- */
-const exitEditMode = () => {
-  editingId = null;
-  form.reset();
-  submitBtn.textContent = 'Publicera recension';
-  cancelBtn.style.display = 'none';
-  checkInputs();
 };
 
 /**
@@ -198,17 +123,14 @@ const exitEditMode = () => {
  */
 const loadReviews = async () => {
   try {
-    const response = await axios.get(API_URL);
+    const response = await axios.get(`${API_URL}/reviews`);
 
-    // förvänta oss en array i response.data
-    const reviews = response.data || [];
-    displayReviews(reviews);
+    console.log({ response: response.data.data });
+
+
+    displayReviews(response.data.data);
   } catch (error) {
-    console.error('Fel vid hämtning av recensioner:', error);
-    const reviewsContainer = document.querySelector('.reviews');
-    if (reviewsContainer) {
-      reviewsContainer.innerHTML = '<p>Kunde inte ladda recensioner just nu.</p>';
-    }
+    alert("Kunde ej hämta recensioner");
   }
 };
 
@@ -227,65 +149,51 @@ form.addEventListener("input", checkInputs);
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  // Collect form values from the DOM
-  inputReviewer = form.elements.reviewer.value.trim();
-  inputBookTitle = form.elements.bookTitle.value.trim();
-  inputReview = form.elements.review.value.trim();
-  inputAuthor = form.elements.author.value.trim();
-  inputRating = form.elements.rating.value.trim();
+  let bookTitle = form.elements.bookTitle.value;
+  let author = form.elements.author.value;
+  let reviewer = form.elements.reviewer.value;
+  let rating = form.elements.rating.value;
+  let review = form.elements.review.value;
 
-  if (!inputReviewer || !inputBookTitle || !inputReview || !inputAuthor || !inputRating) {
-    return alert('Fyll i alla fält!');
-  }
+  if (!bookTitle || !author || !reviewer || rating < 0 || rating > 5 || !review)
+    return alert("Fyll i alla fält!");
 
-  // Create reviewData object
-  const reviewData = {
-    reviewer: inputReviewer,
-    bookTitle: inputBookTitle,
-    author: inputAuthor,
-    review: inputReview,
-    rating: parseInt(inputRating),
+  const bookData = {
+    bookTitle,
+    author,
+    reviewer,
+    rating,
+    review,
+    id,
+    timestamp: new Date(),
   };
 
-  // Disable submit until request completes
-  submitBtn.disabled = true;
-
   try {
-    // If editingId is set, send PUT request to update review
-    let response;
-    if (editingId) {
-      response = await axios.put(`${API_URL}/${editingId}`, reviewData);
-    } else {
-      response = await axios.post(API_URL, reviewData);
-    }
+    const response = await axios.post(`${API_URL}/save-review`, bookData);
 
-    if (response.status === 201 || response.status === 200) {
-      const successMsg = editingId ? 'Recension uppdaterad!' : 'Review sparades!';
-      alert(successMsg);
-      exitEditMode();
-      // Reload reviews to show the updated one
+    if (response.status === 201) {
+      alert("Meddelandet sparades!");
+      form.reset();
       await loadReviews();
     } else {
-      console.error('Unexpected response:', response);
-      alert('Ett fel uppstod vid sparande.');
+      alert("Meddelandet kunde ej sparas!");
     }
   } catch (error) {
-    console.error('Fel vid skapande av recension:', error);
-    alert('Kunde inte skapa recensionen.');
-  } finally {
-    // Restore button state via checkInputs
-    checkInputs();
-  }
-});
+    console.log(error);
 
-// Cancel edit button
-cancelBtn.addEventListener('click', () => {
-  exitEditMode();
+    alert("Meddelandet kunde ej sparas!");
+  }
+
+  // TODO: Hämta alla värden från formuläret
+  // TODO: Skapa ett reviewData-objekt
+  // TODO: Skicka POST-request till backend
+  // TODO: Om det lyckas: visa meddelande, rensa formuläret, ladda om recensioner
+  // TODO: Hantera fel
 });
 
 /**
  * Laddar recensioner när sidan laddas
  */
 window.addEventListener("load", async () => {
-  await loadReviews();
+  loadReviews();
 });

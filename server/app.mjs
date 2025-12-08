@@ -1,82 +1,125 @@
-import cors from "cors"
-import express from "express"
+import cors from "cors";
+import express from "express";
+import fs from "fs";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import { v4 as uuidv4 } from "uuid";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 
-app.use(cors())
-app.use(express.json())
-app.use(express.urlencoded({extended: false}));
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
-// In-memory storage for reviews
-let reviews = [];
-let nextId = 1;
+const filePath = `${__dirname}/reviews.json`;
 
-// GET all reviews
-app.get("/reviews", (req, res) => {
-  res.json(reviews);
-});
+const getReviews = () => {
+  try {
+    if (!fs.existsSync(filePath)) return [];
 
-// POST a new review
-app.post("/reviews", (req, res) => {
-  const { reviewer, bookTitle, author, review, rating } = req.body;
+    const data = fs.readFileSync(filePath, "utf-8");
+    const reviews = JSON.parse(data);
 
-  // Validate required fields
-  if (!reviewer || !bookTitle || !author || !review || !rating) {
-    return res.status(400).json({ error: "Alla fält krävs" });
+    if (!Array.isArray(reviews)) return [];
+
+    return reviews;
+  } catch (error) {
+    console.error("Error reading reviews:", error);
+    return [];
+  }
+};
+
+const saveReview = (bookReviews) => {
+  let reviews = [];
+
+  if (fs.existsSync(filePath)) {
+    try {
+      const data = fs.readFileSync(filePath, "utf-8"); // Läser filens innehåll som text
+      reviews = JSON.parse(data); // Gör om texten till JavaScript-format (oftast en array)
+
+      // Om filen inte innehåller en array, återställ den till en tom array
+      if (!Array.isArray(reviews)) reviews = [];
+    } catch (error) {
+      // Om JSON är trasigt eller något går fel -> nollställ reviews
+      console.error("Error during read of reviews.json:", error);
+      reviews = [];
+    }
   }
 
-  const newReview = {
-    id: nextId++,
-    reviewer,
-    bookTitle,
-    author,
-    review,
-    rating: parseInt(rating),
-    timestamp: new Date().toISOString(),
-  };
+  reviews.push(bookReviews);
 
-  reviews.push(newReview);
-  res.status(201).json(newReview);
+  try {
+    console.log({ reviews: reviews });
+
+    // Sparar tillbaka alla recensioner till reviews.json
+    fs.writeFileSync(filePath, JSON.stringify(reviews, null, 2));
+  } catch (error) {
+    // Skriv ut error meddelandet i terminalen
+    console.error("Error writing to reviews.json");
+  }
+};
+app.get("/reviews", (req, res)  => {
+    try {
+        const reviews = getReviews();
+        
+        res.status(200).json({success: true, data: reviews})
+    } catch (error) {
+        console.error("Error reading file:", error)
+ 
+        res.status(500).json({ success: false });
+      }
 });
 
-// DELETE a review by ID
+app.post("/save-review", (req, res) => {
+  const { bookTitle, author, reviewer, rating, review } = req.body;
+
+  console.log("data:", bookTitle, author, reviewer, rating, review);
+
+  const id = uuidv4();
+
+  try {
+    const bookData = {
+      bookTitle,
+      author,
+      reviewer,
+      rating,
+      review,
+      id,
+    };
+
+    console.log("bookData:", bookData);
+
+    saveReview(bookData);
+
+    res.status(201).json({ success: true });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false });
+  }
+});
+
 app.delete("/reviews/:id", (req, res) => {
   const { id } = req.params;
-  const index = reviews.findIndex((r) => r.id === parseInt(id));
 
-  if (index === -1) {
-    return res.status(404).json({ error: "Recension hittades inte" });
+  try {
+    const reviews = getReviews();
+
+    const filtered = reviews.filter((r) => r.id !== id);
+
+    if (filtered.length === reviews.length) {
+      return res.status(404).json({ success: false, message: "Not found" });
+    }
+
+    fs.writeFileSync(filePath, JSON.stringify(filtered, null, 2));
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Error deleting review:", error);
+    res.status(500).json({ success: false });
   }
-
-  const deletedReview = reviews.splice(index, 1)[0];
-  res.json({ success: true, deleted: deletedReview });
-});
-
-// UPDATE a review by ID (PUT)
-app.put('/reviews/:id', (req, res) => {
-  const { id } = req.params;
-  const index = reviews.findIndex((r) => r.id === parseInt(id));
-  if (index === -1) {
-    return res.status(404).json({ error: 'Recension hittades inte' });
-  }
-
-  const { reviewer, bookTitle, author, review: reviewText, rating } = req.body;
-  if (!reviewer || !bookTitle || !author || !reviewText || !rating) {
-    return res.status(400).json({ error: 'Alla fält krävs' });
-  }
-
-  // Update fields
-  reviews[index] = {
-    ...reviews[index],
-    reviewer,
-    bookTitle,
-    author,
-    review: reviewText,
-    rating: parseInt(rating),
-    timestamp: new Date().toISOString(),
-  };
-
-  res.json(reviews[index]);
 });
 
 export default app;
