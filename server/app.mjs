@@ -61,6 +61,25 @@ const saveReview = (bookReviews) => {
     console.error("Error writing to reviews.json");
   }
 };
+
+const DeleteReview = (ReveiwIDid) => {
+  try {
+    if (!fs.existsSync(filePath)) return false;
+
+    const data = fs.readFileSync(filePath, "utf-8");
+    let reviews = JSON.parse(data);
+
+    const filteredReviews = reviews.filter((review) => review.id !== ReveiwIDid);
+
+    if (reviews.length === filteredReviews.length) return false;
+    
+    fs.writeFileSync(filePath, JSON.stringify(filteredReviews, null, 2));
+    return true;
+  } catch (error) {
+    console.log("Error during delete:", error);
+    return false; 
+  }
+};
 app.get("/reviews", (req, res)  => {
     try {
         const reviews = getReviews();
@@ -102,25 +121,23 @@ app.post("/save-review", (req, res) => {
   }
 });
 
+
+
 app.delete("/reviews/:id", (req, res) => {
-  const { id } = req.params;
+  console.log("delete");  
+  const ReveiwID = req.params.id;
+
+  console.log({ID: ReveiwID});
 
   try {
-    const reviews = getReviews();
+    const deleted = DeleteReview(ReveiwID)
 
-    const filtered = reviews.filter((r) => r.id !== id);
-
-    if (filtered.length === reviews.length) {
-      return res.status(404).json({ success: false, message: "Not found" });
-    }
-
-    fs.writeFileSync(filePath, JSON.stringify(filtered, null, 2));
-
-    res.status(200).json({ success: true });
+    if (deleted) res.status(200).json({ success: true });
+    else res.status(404).json({ success: false, });
   } catch (error) {
-    console.error("Error deleting review:", error);
+    console.log({Error: error});
     res.status(500).json({ success: false });
   }
 });
 
-export default app;
+    export default app;

@@ -88,11 +88,30 @@ const displayReviews = (reviews) => {
     `;
 
     reviewsContainer.appendChild(reviewDiv);
-    const deleteBtn = reviewDiv.querySelector(".delete-btn");
-    if (deleteBtn) deleteBtn.addEventListener("click", handleDelete);
+
+    addDeleteEventListeners();
+
   });
 
   // TODO: Lägg till event listeners på radera-knappar
+};
+
+/**
+ * Hämtar och visar alla recensioner från servern
+ */
+const loadReviews = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/reviews`);
+    
+    if (response.data.success) {
+      displayReviews(response.data.data);
+    } else {
+      console.error("Failed to load reviews");
+    }
+  } catch (error) {
+    console.error("Kunde ej hämta recensioner:", error);
+    alert("Kunde ej hämta recensioner");
+  }
 };
 
 /**
@@ -107,33 +126,24 @@ const handleDelete = async (e) => {
 
   try {
     const response = await axios.delete(`${API_URL}/reviews/${id}`);
-    if (response.status === 200) {
-      await loadReviews();
-    } else {
-      alert("Kunde inte radera recensionen");
+    if (response.data.success) {
+      loadReviews(); // Reload reviews after delete
     }
   } catch (error) {
-    console.error(error);
-    alert("Kunde inte radera recensionen");
+    console.error("Error deleting review:", error);
+    alert("Kunde ej radera recensionen");
   }
 };
 
 /**
- * Hämtar och visar alla recensioner från servern
+ * Lägger till event listeners på alla radera-knappar
  */
-const loadReviews = async () => {
-  try {
-    const response = await axios.get(`${API_URL}/reviews`);
-
-    console.log({ response: response.data.data });
-
-
-    displayReviews(response.data.data);
-  } catch (error) {
-    alert("Kunde ej hämta recensioner");
-  }
+const addDeleteEventListeners = () => {
+  const deleteButtons = document.querySelectorAll(".delete-btn");
+  deleteButtons.forEach((btn) => {
+    btn.addEventListener("click", handleDelete);
+  });
 };
-
 // ========================================
 // EVENT LISTENERS
 // ========================================
@@ -149,14 +159,11 @@ form.addEventListener("input", checkInputs);
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  let bookTitle = form.elements.bookTitle.value;
-  let author = form.elements.author.value;
-  let reviewer = form.elements.reviewer.value;
-  let rating = form.elements.rating.value;
-  let review = form.elements.review.value;
-
-  if (!bookTitle || !author || !reviewer || rating < 0 || rating > 5 || !review)
-    return alert("Fyll i alla fält!");
+  const bookTitle = form.elements.bookTitle.value;
+  const author = form.elements.author.value;
+  const reviewer = form.elements.reviewer.value;
+  const rating = form.elements.rating.value;
+  const review = form.elements.review.value;
 
   const bookData = {
     bookTitle,
@@ -168,26 +175,24 @@ form.addEventListener("submit", async (e) => {
 
   try {
     const response = await axios.post(`${API_URL}/save-review`, bookData);
-
-    if (response.status === 201) {
-      alert("Meddelandet sparades!");
+    
+    if (response.data.success) {
+      alert("Recension sparad!");
       form.reset();
-      await loadReviews();
-    } else {
-      alert("Meddelandet kunde ej sparas!");
+      checkInputs();
+      loadReviews(); // Reload reviews after save
     }
   } catch (error) {
-    console.log(error);
-
-    alert("Meddelandet kunde ej sparas!");
+    console.error("Error saving review:", error);
+    alert("Kunde ej spara recensionen");
   }
-
+});
   // TODO: Hämta alla värden från formuläret
   // TODO: Skapa ett reviewData-objekt
   // TODO: Skicka POST-request till backend
   // TODO: Om det lyckas: visa meddelande, rensa formuläret, ladda om recensioner
   // TODO: Hantera fel
-});
+;
 
 /**
  * Laddar recensioner när sidan laddas
